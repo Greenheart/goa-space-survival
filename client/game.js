@@ -7,10 +7,7 @@ var aliensKilled = 0;
 var music;
 var shootSFX;
 var alienDeathSFX;
-var playerRotationSpeed = 10;
-var playerSpeed = 4;
-//TODO: add acceleration / deacceleration to player-ship
-// so the ship can't go to max velocity directly or stop directly
+var playerExplosionSFX;
 
 Template.game.helpers({
   'game': function() {
@@ -29,9 +26,7 @@ function preload() {
   game.load.audio('shootSFX', 'http://examples.phaser.io/assets/audio/SoundEffects/shotgun.wav');
   game.load.audio('alienDeathSFX', 'http://examples.phaser.io/assets/audio/SoundEffects/alien_death1.wav');
   game.load.audio('goamanIntro', 'http://examples.phaser.io/assets/audio/goaman_intro.mp3');
-
-
-  //TODO: explosion sound effect on player death, maybe animation as well
+  game.load.audio('playerExplosionSFX', 'http://examples.phaser.io/assets/audio/SoundEffects/explosion.mp3');
 
   //create a progress display text
   var loadingText = game.add.text(300, game.world.height/2-20, 'loading... 0%', { fill: '#ffffff' });
@@ -55,6 +50,11 @@ function create() {
 
   // add background
   game.add.tileSprite(0, 0, game.width, game.height, 'background');
+
+  // add gameState-text
+  stateText = game.add.text(game.world.centerX,game.world.centerY,' ', { font: '84px Arial', fill: '#fff' });
+  stateText.anchor.setTo(0.5, 0.5);
+  stateText.visible = false;
 
   // add music
   music = game.add.audio('goamanIntro');
@@ -85,15 +85,15 @@ function create() {
   bullets = game.add.group();
   bullets.enableBody = true;
   bullets.physicsBodyType = Phaser.Physics.ARCADE;
-  bullets.createMultiple(50, 'bulletSprite');
+  bullets.createMultiple(30, 'bulletSprite');
   bullets.setAll('checkWorldBounds', true);
   bullets.setAll('outOfBoundsKill', true);
 
-  // add a enemy
+  // add the enemies-group
   aliens = game.add.group();
   aliens.enableBody = true;
   aliens.physicsBodyType = Phaser.Physics.ARCADE;
-  aliens.createMultiple(50, 'enemy');
+  aliens.createMultiple(20, 'enemy');
   aliens.setAll('checkWorldBounds', true);
   aliens.setAll('outOfBoundsKill', true);
 
@@ -125,11 +125,11 @@ function update() {
 
     if (leftKey.isDown) {
       // rotate left
-      player.body.angularVelocity = -300;
+      player.body.angularVelocity = -200;
     }
     else if (rightKey.isDown) {
       // rotate right
-      player.body.angularVelocity = 300;
+      player.body.angularVelocity = 200;
     }
     else {
       player.body.angularVelocity = 0;
@@ -157,11 +157,24 @@ function update() {
 
 function render() {
   // display score
-  game.debug.text('Kills: '+aliensKilled, 10, 20);
+  if (player.alive) {
+    game.debug.text('Kills: '+aliensKilled, 10, 20);
+  }
+
+  // call renderGroup on each of the alive members
+    aliens.forEachAlive(renderGroup, this);
 }
 
 function die() {
   player.kill();
+  game.sound.play('playerExplosionSFX');
+  game.physics.arcade.isPaused = (game.physics.arcade.isPaused) ? false : true;
+
+  /*stateText.text=" Score:  \n Click to restart";
+  stateText.visible = true;
+  // TODO: add game states + allow player to restart the game
+  //the "click to restart" handler
+  game.input.onTap.addOnce(restart,this);*/
 }
 
 function fire() {
@@ -193,6 +206,7 @@ function generateEnemy() {
   alien.reset(alienX, alienY);
   alien.anchor.setTo(0.5, 0.5);
   alien.scale.setTo(2, 2);
+  alien.body.setSize(alien.body.width * (3/4), alien.body.height * (3/4));
   alien.animations.add('move', [0,1,2,3], 20, true);
   alien.animations.play('move');
   aliens.add(alien);
@@ -200,6 +214,10 @@ function generateEnemy() {
   if (alienRate >= 800) {
     alienRate -= 200;
   }
+}
+
+function renderGroup(member) {
+    game.debug.body(member);
 }
 
 function bulletAlienCollision(a,b) {
