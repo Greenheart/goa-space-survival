@@ -7,27 +7,17 @@ var aliensKilled = 0;
 var music;
 var shootSFX;
 var alienDeathSFX;
+var playerRotationSpeed = 10;
+var playerSpeed = 4;
+//TODO: add acceleration / deacceleration to player-ship
+// so the ship can't go to max velocity directly or stop directly
 
 Template.game.helpers({
   'game': function() {
-
     game = new Phaser.Game(
       750, 500, Phaser.CANVAS, 'gameContainer',
       { preload: preload, create: create, update: update, render: render }
     );
-
-    /*
-    game.global =  {
-      fireRate: 300, // cooldown between gun firing
-      nextFireTime: 0, // time left until next bullet can be fired
-      alienRate: 3000, // cooldown for spawning aliens
-      nextAlienTime: 0,  // time left until next alien can be spawned
-      aliensKilled: 0,
-      music,
-      shootSFX,
-      alienDeathSFX
-    }
-    */
   }
 });
 
@@ -39,6 +29,9 @@ function preload() {
   game.load.audio('shootSFX', 'http://examples.phaser.io/assets/audio/SoundEffects/shotgun.wav');
   game.load.audio('alienDeathSFX', 'http://examples.phaser.io/assets/audio/SoundEffects/alien_death1.wav');
   game.load.audio('goamanIntro', 'http://examples.phaser.io/assets/audio/goaman_intro.mp3');
+
+
+  //TODO: explosion sound effect on player death, maybe animation as well
 
   //create a progress display text
   var loadingText = game.add.text(300, game.world.height/2-20, 'loading... 0%', { fill: '#ffffff' });
@@ -65,20 +58,28 @@ function create() {
 
   // add music
   music = game.add.audio('goamanIntro');
+  music.volume = 0.8;
   music.play();
 
   // add sound effects
   shootSFX = game.add.audio('shootSFX');
+  shootSFX.volume = 0.1;
   shootSFX.allowMultiple = true;
 
   alienDeathSFX = game.add.audio('alienDeathSFX');
+  alienDeathSFX.volume = 0.4;
   alienDeathSFX.allowMultiple = true;
 
   // adding the player object
   player = game.add.sprite(375, 250, 'ship');
-  player.anchor.setTo(0.5, 0.5);
-  player.scale.setTo(1.5,1.5);
+  player.anchor.set(0.5);
+  player.scale.set(1.5,1.5);
+
+  // enable physics for ship
   game.physics.arcade.enable(player);
+  player.body.drag.set(100);
+  player.body.maxVelocity.set(200);
+  player.body.collideWorldBounds = true;
 
   // bullet objects
   bullets = game.add.group();
@@ -92,6 +93,7 @@ function create() {
   aliens = game.add.group();
   aliens.enableBody = true;
   aliens.physicsBodyType = Phaser.Physics.ARCADE;
+  aliens.createMultiple(50, 'enemy');
   aliens.setAll('checkWorldBounds', true);
   aliens.setAll('outOfBoundsKill', true);
 
@@ -114,33 +116,23 @@ function update() {
   // controls
   if (player.alive) {
     if (upKey.isDown) {
-      player.y -= 4;
-      player.angle = 270;
+      // if player is moving forward accelerate velocity
+      game.physics.arcade.accelerationFromRotation(player.rotation, 300, player.body.acceleration);
+    } else {
+      // deaccelerate
+      player.body.acceleration.set(0);
+    }
 
-      if (leftKey.isDown) {
-        player.x -= 4;
-        player.angle = 225;
-      } else if (rightKey.isDown) {
-        player.x += 4;
-        player.angle = 315;
-      }
-    } else if (downKey.isDown) {
-      player.y += 4;
-      player.angle = 90;
-
-      if (leftKey.isDown) {
-        player.x -= 4;
-        player.angle = 135;
-      } else if (rightKey.isDown) {
-        player.x += 4;
-        player.angle = 45;
-      }
-    } else if (leftKey.isDown) {
-      player.x -= 4;
-      player.angle = 180;
-    } else if (rightKey.isDown) {
-      player.x += 4;
-      player.angle = 0;
+    if (leftKey.isDown) {
+      // rotate left
+      player.body.angularVelocity = -300;
+    }
+    else if (rightKey.isDown) {
+      // rotate right
+      player.body.angularVelocity = 300;
+    }
+    else {
+      player.body.angularVelocity = 0;
     }
 
     // fire bullet with spacebar
@@ -154,16 +146,19 @@ function update() {
 
   // spawn aliens every 3 seconds
   if (game.time.now > nextAlienTime) {
-    nextAlienTime = game.time.now + alienRate;
-    generateEnemy();
+    // control cooldown between each alienspawn
+    if (aliens.countLiving() < aliens.length) {
+      // if the maximum number of aliens not yet reached
+      nextAlienTime = game.time.now + alienRate;
+      generateEnemy();
+    }
   }
 }
 
 function render() {
-  game.debug.text('Controls: Arrow Keys for movement, Spacebar to shoot', 130,game.world.height-10);
+  // display score
   game.debug.text('Kills: '+aliensKilled, 10, 20);
 }
-
 
 function die() {
   player.kill();
@@ -172,7 +167,8 @@ function die() {
 function fire() {
   var bullet = bullets.getFirstDead();
   bullet.reset(player.x-10, player.y-10);
-  game.physics.arcade.velocityFromAngle(player.angle, 300, bullet.body.velocity);
+  bullet.rotation = player.rotation;
+  game.physics.arcade.velocityFromAngle(player.angle, 500, bullet.body.velocity);
   game.sound.play('shootSFX');
 }
 
@@ -180,25 +176,30 @@ function generateEnemy() {
   // adding the enemy object
 
   // generate alien coordinates
-  alienX = game.rnd.integerInRange(0, game.world.width);
-  alienY = game.rnd.integerInRange(0, game.world.height);
+  var alienX = game.rnd.integerInRange(0, game.world.width);
+  var alienY = game.rnd.integerInRange(0, game.world.height);
 
   // check that the alienX and alienY isnt too close to player
-  while (game.math.difference(alienX, player.x) <= 50) {
+  while (game.math.difference(alienX, player.x) <= 90) {
     // if they are too close, remake them
     alienX = game.rnd.integerInRange(0, game.world.width);
   }
 
-  while (game.math.difference(alienY, player.y) <= 50) {
+  while (game.math.difference(alienY, player.y) <= 90) {
     alienY = game.rnd.integerInRange(0, game.world.height);
   }
 
-  alien = game.add.sprite(alienX, alienY, 'enemy');
+  var alien = aliens.getFirstDead();
+  alien.reset(alienX, alienY);
   alien.anchor.setTo(0.5, 0.5);
   alien.scale.setTo(2, 2);
   alien.animations.add('move', [0,1,2,3], 20, true);
   alien.animations.play('move');
   aliens.add(alien);
+
+  if (alienRate >= 800) {
+    alienRate -= 200;
+  }
 }
 
 function bulletAlienCollision(a,b) {
