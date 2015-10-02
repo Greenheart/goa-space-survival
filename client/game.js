@@ -23,10 +23,12 @@ function preload() {
   game.load.image('ship', 'http://examples.phaser.io/assets/games/asteroids/ship.png');
   game.load.image('bulletSprite', 'http://examples.phaser.io/assets/sprites/purple_ball.png');
   game.load.spritesheet('enemy', 'http://examples.phaser.io/assets/games/invaders/invader32x32x4.png', 32, 32);
+  game.load.spritesheet('explode', 'http://examples.phaser.io/assets/games/invaders/explode.png', 128, 128, 16);
   game.load.audio('shootSFX', 'http://examples.phaser.io/assets/audio/SoundEffects/shotgun.wav');
   game.load.audio('alienDeathSFX', 'http://examples.phaser.io/assets/audio/SoundEffects/alien_death1.wav');
   game.load.audio('goamanIntro', 'http://examples.phaser.io/assets/audio/goaman_intro.mp3');
   game.load.audio('playerExplosionSFX', 'http://examples.phaser.io/assets/audio/SoundEffects/explosion.mp3');
+  // commit msg --> git commit -m "Fixed a bug with aliens respawning with larger and larger size. Added "restart game"-functionality and also added explosion animation on player death" <<<<<
 
   //create a progress display text
   var loadingText = game.add.text(300, game.world.height/2-20, 'loading... 0%', { fill: '#ffffff' });
@@ -51,11 +53,6 @@ function create() {
   // add background
   game.add.tileSprite(0, 0, game.width, game.height, 'background');
 
-  // add gameState-text
-  stateText = game.add.text(game.world.centerX,game.world.centerY,' ', { font: '84px Arial', fill: '#fff' });
-  stateText.anchor.setTo(0.5, 0.5);
-  stateText.visible = false;
-
   // add music
   music = game.add.audio('goamanIntro');
   music.volume = 0.8;
@@ -71,14 +68,15 @@ function create() {
   alienDeathSFX.allowMultiple = true;
 
   // adding the player object
-  player = game.add.sprite(375, 250, 'ship');
+  player = game.add.sprite(game.world.centerX, game.world.centerY, 'ship');
   player.anchor.set(0.5);
   player.scale.set(1.5,1.5);
+  //player.animations.add('explode', [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15], 30, true);
 
   // enable physics for ship
   game.physics.arcade.enable(player);
   player.body.drag.set(100);
-  player.body.maxVelocity.set(200);
+  player.body.maxVelocity.set(180);
   player.body.collideWorldBounds = true;
 
   // bullet objects
@@ -97,6 +95,11 @@ function create() {
   aliens.setAll('checkWorldBounds', true);
   aliens.setAll('outOfBoundsKill', true);
 
+  // add gameState-text
+  stateText = game.add.text(game.world.centerX,game.world.centerY,' ', { font: '84px Arial', fill: '#fff' });
+  stateText.anchor.setTo(0.5, 0.5);
+  stateText.visible = false;
+
   // add eventlisteners to keys
   upKey = game.input.keyboard.addKey(Phaser.Keyboard.UP);
   downKey = game.input.keyboard.addKey(Phaser.Keyboard.DOWN);
@@ -107,8 +110,10 @@ function create() {
 
 function update() {
 
-  // check collisions --> if aliens and player collides --> call die()
-  game.physics.arcade.overlap(player, aliens, die);
+  if (player.visible) {
+    // check collisions --> if aliens and player collides --> call die()
+    game.physics.arcade.overlap(player, aliens, die);
+  }
 
   // check collisions between aliens and bullets
   game.physics.arcade.overlap(bullets, aliens, bulletAlienCollision);
@@ -144,13 +149,15 @@ function update() {
     }
   }
 
-  // spawn aliens every 3 seconds
-  if (game.time.now > nextAlienTime) {
-    // control cooldown between each alienspawn
-    if (aliens.countLiving() < aliens.length) {
-      // if the maximum number of aliens not yet reached
-      nextAlienTime = game.time.now + alienRate;
-      generateEnemy();
+  if (player.alive) {
+    // spawn aliens every 3 seconds
+    if (game.time.now > nextAlienTime) {
+      // control cooldown between each alienspawn
+      if (aliens.countLiving() < aliens.length) {
+        // if the maximum number of aliens not yet reached
+        nextAlienTime = game.time.now + alienRate;
+        generateEnemy();
+      }
     }
   }
 }
@@ -166,15 +173,25 @@ function render() {
 }
 
 function die() {
-  player.kill();
-  game.sound.play('playerExplosionSFX');
-  game.physics.arcade.isPaused = (game.physics.arcade.isPaused) ? false : true;
+  player.visible = false;
 
-  /*stateText.text=" Score:  \n Click to restart";
+  // play explosion sound
+  game.sound.play('playerExplosionSFX');
+
+  var explosion = game.add.sprite(player.body.x, player.body.y, 'explode');
+  explosion.anchor.setTo(0.5, 0.5);
+  explosion.animations.add('explode');
+  // animate explosion --> last arg says killOnComplete: true --> kill player
+  explosion.events.onAnimationComplete. add(function() {
+    // when animation is done, kill player
+    player.kill();
+  });
+  explosion.play('explode', 30, false, true);
+
+  // display endgame text
+  stateText.text="    Score: " + aliensKilled + " \n Click to restart";
   stateText.visible = true;
-  // TODO: add game states + allow player to restart the game
-  //the "click to restart" handler
-  game.input.onTap.addOnce(restart,this);*/
+  game.input.onTap.addOnce(restart,this);
 }
 
 function fire() {
@@ -203,11 +220,11 @@ function generateEnemy() {
   }
 
   var alien = aliens.getFirstDead();
+  alien.body.setSize(25, 20);
   alien.reset(alienX, alienY);
-  alien.anchor.setTo(0.5, 0.5);
+  alien.anchor.setTo(0.5, 0.8);
   alien.scale.setTo(2, 2);
-  alien.body.setSize(alien.body.width * (3/4), alien.body.height * (3/4));
-  alien.animations.add('move', [0,1,2,3], 20, true);
+  alien.animations.add('move', [0,1,2,3], 16, true);
   alien.animations.play('move');
   aliens.add(alien);
 
@@ -226,4 +243,22 @@ function bulletAlienCollision(a,b) {
   b.kill();
   aliensKilled++;
   game.sound.play('alienDeathSFX');
+}
+
+function restart () {
+    // restarts the game
+
+    // kill all aliens
+    aliens.forEachAlive(function (a) {
+      a.kill();
+    }, this);
+
+    // revive the player
+    player.reset(game.world.centerX, game.world.centerY);
+    player.alive = true;
+
+    // reset game-state and helper variables
+    stateText.visible = false;
+    aliensKilled = 0;
+    alienRate = 3000;
 }
