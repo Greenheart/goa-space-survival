@@ -34,16 +34,22 @@ function preload() {
   game.load.audio('playerExplosionSFX', 'http://examples.phaser.io/assets/audio/SoundEffects/explosion.mp3');
   game.load.audio('tommyInGoa', 'http://examples.phaser.io/assets/audio/tommy_in_goa.mp3');
 
-// TODO: git commit -m "added ammo pickups that spawn randoml when an alien is killed"
+// TODO: git commit -m "Big improvements on aliens physics. They no longer leave the gameWorld and they get random velocities and directions when they get spawned. Also added code to kill the alien that a player collide with"
 
-// -------------------- FUTURE TODOS ---------------------
-// * add collision detection for aliens , they should not be able to spawn on top of each other.
-// * aliens should not be spawning outside of map
-// * aliens should get random velocities and angles to move around the game world and make gameplay harder
-//    * if they hit game.world.bounds --> change direction to a new random one
-// * maybe balance alien spawntime-decrease a bit so it doesn't get hard as fast as it currently does
-// * maybe increase world size, add camera following the player
-// * fix SFX-volumes
+/* -------------------- THIS COMMIT ----------------------
+
+*/
+
+/* --------------------- NEXT COMMIT ------------------------
+    * maybe balance alien spawntime-decrease a bit so it doesn't get hard as fast as it currently does
+    * fix SFX-volumes
+    * Add timed lifespan to ammoClips --> about 10 sec
+*/
+
+/* -------------------- FUTURE TODOS ---------------------
+    * maybe increase world size, add camera following the player
+    * Score bonus calculated by aliensKilled * (shotsHit / shotsFired)
+*/
 
   //create a progress display text
   var loadingText = game.add.text(game.world.centerX, game.world.centerY, 'loading... 0%', { fill: '#ffffff' });
@@ -63,11 +69,14 @@ function preload() {
 }
 
 function create() {
+  // set game world bounds
+  game.world.setBounds(0, 0, game.world.width, game.world.height);
+
   // start physics
   game.physics.startSystem(Phaser.Physics.ARCADE);
 
   // add background
-  game.add.tileSprite(0, 0, game.width, game.height, 'background');
+  game.add.tileSprite(0, 0, game.world.width, game.world.height, 'background');
 
   // add music
   music = game.add.audio(musicPlaylist[0]);
@@ -101,14 +110,14 @@ function create() {
   // adding the player object
   player = game.add.sprite(game.world.centerX, game.world.centerY, 'ship');
   player.anchor.set(0.5);
-  player.scale.set(1.5,1.5);
+  player.scale.set(1.5);
   player.smoothed = true;
   player.animations.add('fly', [0,1,2,3,4,5], 10, true);
   player.play('fly');
 
   // enable physics for ship
   game.physics.arcade.enable(player);
-  player.body.drag.set(80);
+  player.body.drag.set(150);
   player.body.width *= 3/4;
   player.body.height *= 3/4;
   player.body.maxVelocity.set(180);
@@ -119,8 +128,9 @@ function create() {
   aliens.enableBody = true;
   aliens.physicsBodyType = Phaser.Physics.ARCADE;
   aliens.createMultiple(20, 'enemy');
+  aliens.setAll('body.collideWorldBounds', true);
   aliens.setAll('checkWorldBounds', true);
-  aliens.setAll('outOfBoundsKill', true);
+  aliens.setAll('body.outOfBoundsKill', true);
 
   // add gameState-text
   stateText = game.add.text(game.world.centerX, game.world.centerY - 50,' ', { font: '84px Arial', fill: '#fff' });
@@ -226,9 +236,10 @@ function render() {
   //*/
 }
 
-function die() {
+function die(player, alien) {
   // hide ship to allow the game to play death-animation before entering next game state
   player.visible = false;
+  alien.visible = false;
 
   // play explosion sound
   game.sound.play('playerExplosionSFX');
@@ -238,9 +249,8 @@ function die() {
   explosion.anchor.setTo(0.5, 0.5);
   explosion.animations.add('explode');
   explosion.events.onAnimationComplete.add(function() {
-    // when animation is done, kill player
     player.kill();
-
+    alien.kill();
     // display endgame text
     stateText.text= "Score: " + aliensKilled;
     stateText.visible = true;
@@ -266,26 +276,34 @@ function generateEnemy() {
   // adding the enemy object
 
   // generate alien coordinates
-  var alienX = game.rnd.integerInRange(0, game.world.width);
-  var alienY = game.rnd.integerInRange(0, game.world.height);
+  var alienX = game.world.randomX;
+  var alienY = game.world.randomY;
 
   // check that the alienX and alienY isnt too close to player
   while (game.math.difference(alienX, player.x) <= 90) {
     // if they are too close, remake them
-    alienX = game.rnd.integerInRange(0, game.world.width);
+    alienX = game.world.randomX;
   }
 
   while (game.math.difference(alienY, player.y) <= 90) {
-    alienY = game.rnd.integerInRange(0, game.world.height);
+    alienY = game.world.randomY;
   }
 
+  var direction = game.rnd.integerInRange(0, 2 * Math.PI);
+  var minSpeed = -125
+  var maxSpeed = 125;
+  var vx = game.rnd.integerInRange(minSpeed, maxSpeed);
+  var vy = game.rnd.integerInRange(minSpeed, maxSpeed);
   var alien = aliens.getFirstDead();
-  alien.body.setSize(25, 20);
   alien.reset(alienX, alienY);
+  alien.body.setSize(25, 20);
+  alien.body.bounce.setTo(1);
   alien.anchor.setTo(0.5, 0.8);
   alien.scale.setTo(2, 2);
-  alien.animations.add('move', [0,1,2,3], 16, true);
+  alien.animations.add('move', [0,1,2,3], 10, true);
   alien.animations.play('move');
+  alien.body.velocity.set(vx, vy);
+  game.physics.arcade.velocityFromRotation(direction, alien.body.velocity);
   aliens.add(alien);
 
   if (alienRate >= 800) {
