@@ -117,7 +117,7 @@ function create() {
 
   // enable physics for ship
   game.physics.arcade.enable(player);
-  player.body.drag.set(150);
+  player.body.drag.set(200);
   player.body.width *= 3/4;
   player.body.height *= 3/4;
   player.body.maxVelocity.set(180);
