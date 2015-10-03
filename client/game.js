@@ -8,8 +8,6 @@ var music;
 var shootSFX;
 var alienDeathSFX;
 var playerExplosionSFX;
-var nextTrack = 1;
-var musicPlaylist = ['goamanIntro', 'tommyInGoa'];
 var playerAmmo = 50;
 var playerRotationFix = Math.PI / 2;  // hack that fixes the default rotation of player-sprite
 
@@ -30,11 +28,10 @@ function preload() {
   game.load.spritesheet('explode', 'http://examples.phaser.io/assets/games/invaders/explode.png', 128, 128, 16);
   game.load.audio('shootSFX', 'http://examples.phaser.io/assets/audio/SoundEffects/shotgun.wav');
   game.load.audio('alienDeathSFX', 'http://examples.phaser.io/assets/audio/SoundEffects/alien_death1.wav');
-  game.load.audio('goamanIntro', 'http://examples.phaser.io/assets/audio/goaman_intro.mp3');
   game.load.audio('playerExplosionSFX', 'http://examples.phaser.io/assets/audio/SoundEffects/explosion.mp3');
   game.load.audio('tommyInGoa', 'http://examples.phaser.io/assets/audio/tommy_in_goa.mp3');
 
-// TODO: git commit -m "Big improvements on aliens physics. They no longer leave the gameWorld and they get random velocities and directions when they get spawned. Also added code to kill the alien that a player collide with"
+// TODO: git commit -m ""
 
 /* -------------------- THIS COMMIT ----------------------
 
@@ -42,13 +39,22 @@ function preload() {
 
 /* --------------------- NEXT COMMIT ------------------------
     * maybe balance alien spawntime-decrease a bit so it doesn't get hard as fast as it currently does
-    * fix SFX-volumes
     * Add timed lifespan to ammoClips --> about 10 sec
+    * Decrease chance to get ammo from aliens
 */
 
 /* -------------------- FUTURE TODOS ---------------------
     * maybe increase world size, add camera following the player
     * Score bonus calculated by aliensKilled * (shotsHit / shotsFired)
+    * add functionality to save highscores using meteor
+      * username string entered from
+      * only possible to submit highscores if user is logged in
+      * add template that display highscores
+      * Implement using meteor methods to make it more secure
+    * More types of ship
+      * smaller ship that always move towards the player
+        * check tanks example game for how turrets of enemy tanks always face the player
+    * maybe enemy ships sometimes drop bombs
 */
 
   //create a progress display text
@@ -79,19 +85,19 @@ function create() {
   game.add.tileSprite(0, 0, game.world.width, game.world.height, 'background');
 
   // add music
-  music = game.add.audio(musicPlaylist[0]);
+  music = game.add.audio('tommyInGoa');
   music.volume = 1;
-  music.allowMultiple = false;
+  music.onStop.add(function() {
+    music.restart();
+  });
   music.play();
 
   // add sound effects
   shootSFX = game.add.audio('shootSFX');
-  shootSFX.volume = 1;
-  shootSFX.allowMultiple = true;
+  shootSFX.volume = 0.1;
 
   alienDeathSFX = game.add.audio('alienDeathSFX');
   alienDeathSFX.volume = 0.4;
-  alienDeathSFX.allowMultiple = true;
 
   // bullet objects
   bullets = game.add.group();
@@ -203,20 +209,6 @@ function update() {
         nextAlienTime = game.time.now + alienRate;
         generateEnemy();
       }
-    }
-  }
-
-  if (!music.isPlaying) {
-    // if music not playing --> change track
-
-    music = game.add.audio(musicPlaylist[nextTrack]);
-    music.play();
-
-    if (nextTrack === musicPlaylist.length - 1) {
-      // if end of playlist reahced --> play next track
-      nextTrack = 0;
-    } else {
-      nextTrack++;
     }
   }
 }
