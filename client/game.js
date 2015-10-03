@@ -11,6 +11,7 @@ var playerExplosionSFX;
 var nextTrack = 1;
 var musicPlaylist = ['goamanIntro', 'tommyInGoa'];
 var playerAmmo = 50;
+var playerRotationFix = Math.PI / 2;  // hack that fixes the default rotation of player-sprite
 
 Template.game.helpers({
   'game': function() {
@@ -23,8 +24,8 @@ Template.game.helpers({
 
 function preload() {
   game.load.image('background', 'http://examples.phaser.io/assets/skies/deep-space.jpg');
-  game.load.image('ship', 'http://examples.phaser.io/assets/games/asteroids/ship.png');
   game.load.image('bulletSprite', 'http://examples.phaser.io/assets/sprites/purple_ball.png');
+  game.load.spritesheet('ship', 'http://examples.phaser.io/assets/sprites/humstar.png', 32, 32, 6);
   game.load.spritesheet('enemy', 'http://examples.phaser.io/assets/games/invaders/invader32x32x4.png', 32, 32);
   game.load.spritesheet('explode', 'http://examples.phaser.io/assets/games/invaders/explode.png', 128, 128, 16);
   game.load.audio('shootSFX', 'http://examples.phaser.io/assets/audio/SoundEffects/shotgun.wav');
@@ -33,7 +34,15 @@ function preload() {
   game.load.audio('playerExplosionSFX', 'http://examples.phaser.io/assets/audio/SoundEffects/explosion.mp3');
   game.load.audio('tommyInGoa', 'http://examples.phaser.io/assets/audio/tommy_in_goa.mp3');
 
-// TODO: git commit -m " "
+// TODO: git commit -m "Added new player-sprite, alternative controls and improved endgame-state"
+
+
+// ----------------- THIS RELEASE TODOS ------------------
+// DONE - 1. Add new player-sprite
+// DONE - 2. Add WASD as alternative player-controls
+// DONE - 3. Make endgame-text visible after death-animation is finished
+
+// -------------------- FUTURE TODOS ---------------------
 // * add collision detection for aliens , they should not be able to spawn on top of each other.
 // * aliens should not be spawning outside of map
 // * aliens should get random velocities and angles to move around the game world and make gameplay harder
@@ -45,7 +54,6 @@ function preload() {
 //    * 25% drop-chance on alien death
 //    * restore some ammo
 // * fix SFX-volumes
-// * Add WASD as alternative player-controls
 
   //create a progress display text
   var loadingText = game.add.text(game.world.centerX, game.world.centerY, 'loading... 0%', { fill: '#ffffff' });
@@ -86,17 +94,6 @@ function create() {
   alienDeathSFX.volume = 0.4;
   alienDeathSFX.allowMultiple = true;
 
-  // adding the player object
-  player = game.add.sprite(game.world.centerX, game.world.centerY, 'ship');
-  player.anchor.set(0.5);
-  player.scale.set(1.5,1.5);
-
-  // enable physics for ship
-  game.physics.arcade.enable(player);
-  player.body.drag.set(100);
-  player.body.maxVelocity.set(180);
-  player.body.collideWorldBounds = true;
-
   // bullet objects
   bullets = game.add.group();
   bullets.enableBody = true;
@@ -104,6 +101,22 @@ function create() {
   bullets.createMultiple(30, 'bulletSprite');
   bullets.setAll('checkWorldBounds', true);
   bullets.setAll('outOfBoundsKill', true);
+
+  // adding the player object
+  player = game.add.sprite(game.world.centerX, game.world.centerY, 'ship');
+  player.anchor.set(0.5);
+  player.scale.set(1.5,1.5);
+  player.smoothed = true;
+  player.animations.add('fly', [0,1,2,3,4,5], 10, true);
+  player.play('fly');
+
+  // enable physics for ship
+  game.physics.arcade.enable(player);
+  player.body.drag.set(100);
+  player.body.width *= 3/4;
+  player.body.height *= 3/4;
+  player.body.maxVelocity.set(180);
+  player.body.collideWorldBounds = true;
 
   // add the enemies-group
   aliens = game.add.group();
@@ -125,9 +138,11 @@ function create() {
 
   // add eventlisteners to keys
   upKey = game.input.keyboard.addKey(Phaser.Keyboard.UP);
-  downKey = game.input.keyboard.addKey(Phaser.Keyboard.DOWN);
+  wKey = game.input.keyboard.addKey(Phaser.Keyboard.W);
   leftKey = game.input.keyboard.addKey(Phaser.Keyboard.LEFT);
+  aKey = game.input.keyboard.addKey(Phaser.Keyboard.A);
   rightKey = game.input.keyboard.addKey(Phaser.Keyboard.RIGHT);
+  dKey = game.input.keyboard.addKey(Phaser.Keyboard.D);
   fireKey = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
 }
 
@@ -143,19 +158,19 @@ function update() {
 
   // controls
   if (player.alive) {
-    if (upKey.isDown) {
+    if (upKey.isDown || wKey.isDown) {
       // if player is moving forward accelerate velocity
-      game.physics.arcade.accelerationFromRotation(player.rotation, 300, player.body.acceleration);
+      game.physics.arcade.accelerationFromRotation(player.rotation + playerRotationFix, 300, player.body.acceleration);
     } else {
       // deaccelerate
       player.body.acceleration.set(0);
     }
 
-    if (leftKey.isDown) {
+    if (leftKey.isDown || aKey.isDown) {
       // rotate left
       player.body.angularVelocity = -200;
     }
-    else if (rightKey.isDown) {
+    else if (rightKey.isDown || dKey.isDown) {
       // rotate right
       player.body.angularVelocity = 200;
     }
@@ -203,11 +218,14 @@ function render() {
   // display score & ammo
   if (player.alive) {
     game.debug.text('Kills: '+aliensKilled, 10, 20);
-    game.debug.text('Ammo: '+playerAmmo, game.world.width - 95, 20)
+    game.debug.text('Ammo: '+playerAmmo, game.world.width - 95, 20);
   }
 
-  // display hitboxes for each alien alive
-  // aliens.forEachAlive(renderGroup, this);
+  /* display hitboxes
+     bullets.forEachAlive(renderGroup, this);
+     aliens.forEachAlive(renderGroup, this);
+     game.debug.body(player);
+  */
 }
 
 function die() {
@@ -221,26 +239,26 @@ function die() {
   var explosion = game.add.sprite(player.body.x, player.body.y, 'explode');
   explosion.anchor.setTo(0.5, 0.5);
   explosion.animations.add('explode');
-  explosion.events.onAnimationComplete. add(function() {
+  explosion.events.onAnimationComplete.add(function() {
     // when animation is done, kill player
     player.kill();
+
+    // display endgame text
+    stateText.text= "Score: " + aliensKilled;
+    stateText.visible = true;
+    startText.text = "Click to restart";
+    startText.visible = true;
+
+    game.input.onTap.addOnce(restart,this);
   });
   explosion.play('explode', 18, false, true);
-
-  // display endgame text
-  stateText.text= "Score: " + aliensKilled;
-  stateText.visible = true;
-  startText.text = "Click to restart";
-  startText.visible = true;
-  game.input.onTap.addOnce(restart,this);
 }
 
 function fire() {
   if (playerAmmo > 0) {
     var bullet = bullets.getFirstDead();
-    bullet.reset(player.x-10, player.y-10);
-    bullet.rotation = player.rotation;
-    game.physics.arcade.velocityFromAngle(player.angle, 500, bullet.body.velocity);
+    bullet.reset(player.x, player.y);
+    game.physics.arcade.velocityFromRotation(player.rotation + playerRotationFix, 500, bullet.body.velocity);
     game.sound.play('shootSFX');
     playerAmmo--;
   }
