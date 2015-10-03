@@ -8,6 +8,8 @@ var music;
 var shootSFX;
 var alienDeathSFX;
 var playerExplosionSFX;
+var nextTrack = 1;
+var musicPlaylist = ['goamanIntro', 'tommyInGoa'];
 
 Template.game.helpers({
   'game': function() {
@@ -28,10 +30,13 @@ function preload() {
   game.load.audio('alienDeathSFX', 'http://examples.phaser.io/assets/audio/SoundEffects/alien_death1.wav');
   game.load.audio('goamanIntro', 'http://examples.phaser.io/assets/audio/goaman_intro.mp3');
   game.load.audio('playerExplosionSFX', 'http://examples.phaser.io/assets/audio/SoundEffects/explosion.mp3');
-  // commit msg --> git commit -m "Fixed a bug with aliens respawning with larger and larger size. Added "restart game"-functionality and also added explosion animation on player death" <<<<<
+  game.load.audio('tommyInGoa', 'http://examples.phaser.io/assets/audio/tommy_in_goa.mp3');
+
+// TODO: git commit -m "added more music, removed some hardcoded values and added some new ones instead..."
 
   //create a progress display text
-  var loadingText = game.add.text(300, game.world.height/2-20, 'loading... 0%', { fill: '#ffffff' });
+  var loadingText = game.add.text(game.world.centerX, game.world.centerY, 'loading... 0%', { fill: '#ffffff' });
+  loadingText.anchor.set(0.5);
   var progressDisplay = 0;
 
   var timerEvt = game.time.events.loop(100, function (){
@@ -54,8 +59,9 @@ function create() {
   game.add.tileSprite(0, 0, game.width, game.height, 'background');
 
   // add music
-  music = game.add.audio('goamanIntro');
+  music = game.add.audio(musicPlaylist[0]);
   music.volume = 0.8;
+  music.allowMultiple = false;
   music.play();
 
   // add sound effects
@@ -160,6 +166,20 @@ function update() {
       }
     }
   }
+
+  if (!music.isPlaying) {
+    // if music not playing --> change track
+
+    music = game.add.audio(musicPlaylist[nextTrack]);
+    music.play();
+
+    if (nextTrack === musicPlaylist.length - 1) {
+      // if end of playlist reahced --> play next track
+      nextTrack = 0;
+    } else {
+      nextTrack++;
+    }
+  }
 }
 
 function render() {
@@ -169,7 +189,7 @@ function render() {
   }
 
   // call renderGroup on each of the alive members
-    aliens.forEachAlive(renderGroup, this);
+  // aliens.forEachAlive(renderGroup, this);
 }
 
 function die() {
