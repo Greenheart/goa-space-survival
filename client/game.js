@@ -34,13 +34,7 @@ function preload() {
   game.load.audio('playerExplosionSFX', 'http://examples.phaser.io/assets/audio/SoundEffects/explosion.mp3');
   game.load.audio('tommyInGoa', 'http://examples.phaser.io/assets/audio/tommy_in_goa.mp3');
 
-// TODO: git commit -m "Added new player-sprite, alternative controls and improved endgame-state"
-
-
-// ----------------- THIS RELEASE TODOS ------------------
-// DONE - 1. Add new player-sprite
-// DONE - 2. Add WASD as alternative player-controls
-// DONE - 3. Make endgame-text visible after death-animation is finished
+// TODO: git commit -m "added ammo pickups that spawn randoml when an alien is killed"
 
 // -------------------- FUTURE TODOS ---------------------
 // * add collision detection for aliens , they should not be able to spawn on top of each other.
@@ -49,10 +43,6 @@ function preload() {
 //    * if they hit game.world.bounds --> change direction to a new random one
 // * maybe balance alien spawntime-decrease a bit so it doesn't get hard as fast as it currently does
 // * maybe increase world size, add camera following the player
-// * add player ammo and ammo-pack-drops on alien deaths
-//    * maybe use a group with ammo-packs that are reused
-//    * 25% drop-chance on alien death
-//    * restore some ammo
 // * fix SFX-volumes
 
   //create a progress display text
@@ -102,6 +92,12 @@ function create() {
   bullets.setAll('checkWorldBounds', true);
   bullets.setAll('outOfBoundsKill', true);
 
+  // ammoClip objects
+  ammoClips = game.add.group();
+  ammoClips.enableBody = true;
+  ammoClips.physicsBodyType = Phaser.Physics.ARCADE;
+  ammoClips.createMultiple(40, 'bulletSprite');
+
   // adding the player object
   player = game.add.sprite(game.world.centerX, game.world.centerY, 'ship');
   player.anchor.set(0.5);
@@ -112,7 +108,7 @@ function create() {
 
   // enable physics for ship
   game.physics.arcade.enable(player);
-  player.body.drag.set(100);
+  player.body.drag.set(80);
   player.body.width *= 3/4;
   player.body.height *= 3/4;
   player.body.maxVelocity.set(180);
@@ -151,6 +147,7 @@ function update() {
   if (player.visible) {
     // check collisions --> if aliens and player collides --> call die()
     game.physics.arcade.overlap(player, aliens, die);
+    game.physics.arcade.overlap(player, ammoClips, refillAmmo);
   }
 
   // check collisions between aliens and bullets
@@ -224,8 +221,9 @@ function render() {
   /* display hitboxes
      bullets.forEachAlive(renderGroup, this);
      aliens.forEachAlive(renderGroup, this);
+     ammoClips.forEachAlive(renderGroup, this);
      game.debug.body(player);
-  */
+  //*/
 }
 
 function die() {
@@ -295,15 +293,31 @@ function generateEnemy() {
   }
 }
 
+function dropAmmo(x, y) {
+  // generate an ammoClip-obj on a given position
+  var ammoClip = ammoClips.getFirstDead();
+  ammoClip.reset(x, y);
+  ammoClip.anchor.set(0.5);
+  ammoClips.add(ammoClip);
+}
+
 function renderGroup(member) {
   // render the body of a group-member
   game.debug.body(member);
 }
 
-function bulletAlienCollision(a,b) {
+function bulletAlienCollision(bullet, alien) {
   // handle collision beween aliens and bullets
-  a.kill();
-  b.kill();
+
+  // 40% chance that the alien dropAmmo
+  var outcome = Math.random();
+  if (outcome > 0.6) {
+    // drop ammo on the alien's anchor position
+    dropAmmo(alien.body.x + alien.body.width / 2, alien.body.y + alien.body.height / 2);
+  }
+
+  bullet.kill();
+  alien.kill();
   aliensKilled++;
   game.sound.play('alienDeathSFX');
 }
@@ -316,6 +330,10 @@ function restart () {
       a.kill();
     }, this);
 
+    ammoClips.forEachAlive(function(clip) {
+      clip.kill();
+    }, this);
+
     // revive the player
     player.reset(game.world.centerX, game.world.centerY);
     player.alive = true;
@@ -326,4 +344,10 @@ function restart () {
     aliensKilled = 0;
     alienRate = 3000;
     playerAmmo = 50;
+}
+
+function refillAmmo(player, ammoClip) {
+  // handle collision between player and ammoClip
+  playerAmmo += 10;
+  ammoClip.kill();
 }
