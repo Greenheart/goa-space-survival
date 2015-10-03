@@ -31,16 +31,18 @@ function preload() {
   game.load.audio('playerExplosionSFX', 'http://examples.phaser.io/assets/audio/SoundEffects/explosion.mp3');
   game.load.audio('tommyInGoa', 'http://examples.phaser.io/assets/audio/tommy_in_goa.mp3');
 
-// TODO: git commit -m ""
+// TODO: git commit -m "Some balancing changes that makes the game harder. Added timed life to ammoClips, decreased the player's safe zone, decreased chance to get ammo from aliens. Also decreased how fast the alienSpawnRate decreases and changed the instructions"
 
 /* -------------------- THIS COMMIT ----------------------
-
+    DONE * maybe balance alien spawntime-decrease a bit so it doesn't get hard as fast as it currently does
+    DONE * Add timed lifespan to ammoClips --> about 10 sec
+    DONE * Decrease player safe-zone
+    DONE * Decrease chance to get ammo from aliens
+    DONE * edit main.html-template to display correct controls
 */
 
 /* --------------------- NEXT COMMIT ------------------------
-    * maybe balance alien spawntime-decrease a bit so it doesn't get hard as fast as it currently does
-    * Add timed lifespan to ammoClips --> about 10 sec
-    * Decrease chance to get ammo from aliens
+
 */
 
 /* -------------------- FUTURE TODOS ---------------------
@@ -272,12 +274,12 @@ function generateEnemy() {
   var alienY = game.world.randomY;
 
   // check that the alienX and alienY isnt too close to player
-  while (game.math.difference(alienX, player.x) <= 90) {
+  while (game.math.difference(alienX, player.x) <= 80) {
     // if they are too close, remake them
     alienX = game.world.randomX;
   }
 
-  while (game.math.difference(alienY, player.y) <= 90) {
+  while (game.math.difference(alienY, player.y) <= 80) {
     alienY = game.world.randomY;
   }
 
@@ -299,7 +301,7 @@ function generateEnemy() {
   aliens.add(alien);
 
   if (alienRate >= 800) {
-    alienRate -= 200;
+    alienRate -= 100;
   }
 }
 
@@ -309,6 +311,14 @@ function dropAmmo(x, y) {
   ammoClip.reset(x, y);
   ammoClip.anchor.set(0.5);
   ammoClips.add(ammoClip);
+  timedLife(ammoClip, 10);
+}
+
+function timedLife(object, time) {
+  game.time.events.add(Phaser.Timer.SECOND * time, function() {
+    // timer that kills the object after a specified amount of seconds
+    object.kill();
+  }, this);
 }
 
 function renderGroup(member) {
@@ -319,9 +329,9 @@ function renderGroup(member) {
 function bulletAlienCollision(bullet, alien) {
   // handle collision beween aliens and bullets
 
-  // 40% chance that the alien dropAmmo
+  // 30% chance that the alien dropAmmo
   var outcome = Math.random();
-  if (outcome > 0.6) {
+  if (outcome >= 0.7) {
     // drop ammo on the alien's anchor position
     dropAmmo(alien.body.x + alien.body.width / 2, alien.body.y + alien.body.height / 2);
   }
