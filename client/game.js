@@ -222,7 +222,7 @@ function render() {
   // display score & ammo
   if (player.alive) {
     game.debug.text('Kills: '+aliensKilled, 10, 20);
-    game.debug.text('Ammo: '+playerAmmo, 660, 20);
+    game.debug.text('Ammo: '+playerAmmo, game.camera.width - 95, 20);
   }
 
   /* display hitboxes
