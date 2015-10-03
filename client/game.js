@@ -8,13 +8,14 @@ var music;
 var shootSFX;
 var alienDeathSFX;
 var playerExplosionSFX;
+var pickUpItemSFX;
 var playerAmmo = 50;
 var playerRotationFix = Math.PI / 2;  // hack that fixes the default rotation of player-sprite
 
 Template.game.helpers({
   'game': function() {
     game = new Phaser.Game(
-      750, 500, Phaser.CANVAS, 'gameContainer',
+      800, 600, Phaser.CANVAS, '',
       { preload: preload, create: create, update: update, render: render }
     );
   }
@@ -29,17 +30,10 @@ function preload() {
   game.load.audio('shootSFX', 'http://examples.phaser.io/assets/audio/SoundEffects/shotgun.wav');
   game.load.audio('alienDeathSFX', 'http://examples.phaser.io/assets/audio/SoundEffects/alien_death1.wav');
   game.load.audio('playerExplosionSFX', 'http://examples.phaser.io/assets/audio/SoundEffects/explosion.mp3');
+  game.load.audio('pickUpItemSFX', 'http://examples.phaser.io/assets/audio/SoundEffects/key.wav');
   game.load.audio('tommyInGoa', 'http://examples.phaser.io/assets/audio/tommy_in_goa.mp3');
 
-// TODO: git commit -m ""
-
-/* -------------------- THIS COMMIT ----------------------
-
-*/
-
-/* --------------------- NEXT COMMIT ------------------------
-
-*/
+// TODO: git commit -m " "
 
 /* -------------------- FUTURE TODOS ---------------------
     * Score bonus calculated by aliensKilled * (shotsHit / shotsFired)
@@ -95,6 +89,9 @@ function create() {
 
   alienDeathSFX = game.add.audio('alienDeathSFX');
   alienDeathSFX.volume = 0.4;
+
+  pickUpItemSFX = game.add.audio('pickUpItemSFX');
+  pickUpItemSFX.colume = 0.1;
 
   // bullet objects
   bullets = game.add.group();
@@ -374,6 +371,7 @@ function restart () {
 
 function refillAmmo(player, ammoClip) {
   // handle collision between player and ammoClip
+  pickUpItemSFX.play();
   playerAmmo += 10;
   ammoClip.kill();
 }
