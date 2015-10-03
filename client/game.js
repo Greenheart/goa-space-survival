@@ -31,14 +31,10 @@ function preload() {
   game.load.audio('playerExplosionSFX', 'http://examples.phaser.io/assets/audio/SoundEffects/explosion.mp3');
   game.load.audio('tommyInGoa', 'http://examples.phaser.io/assets/audio/tommy_in_goa.mp3');
 
-// TODO: git commit -m "Some balancing changes that makes the game harder. Added timed life to ammoClips, decreased the player's safe zone, decreased chance to get ammo from aliens. Also decreased how fast the alienSpawnRate decreases and changed the instructions"
+// TODO: git commit -m ""
 
 /* -------------------- THIS COMMIT ----------------------
-    DONE * maybe balance alien spawntime-decrease a bit so it doesn't get hard as fast as it currently does
-    DONE * Add timed lifespan to ammoClips --> about 10 sec
-    DONE * Decrease player safe-zone
-    DONE * Decrease chance to get ammo from aliens
-    DONE * edit main.html-template to display correct controls
+
 */
 
 /* --------------------- NEXT COMMIT ------------------------
@@ -46,7 +42,6 @@ function preload() {
 */
 
 /* -------------------- FUTURE TODOS ---------------------
-    * maybe increase world size, add camera following the player
     * Score bonus calculated by aliensKilled * (shotsHit / shotsFired)
     * add functionality to save highscores using meteor
       * username string entered from
@@ -78,13 +73,13 @@ function preload() {
 
 function create() {
   // set game world bounds
-  game.world.setBounds(0, 0, game.world.width, game.world.height);
+  game.world.setBounds(0, 0, 1000, 1000);
 
   // start physics
   game.physics.startSystem(Phaser.Physics.ARCADE);
 
   // add background
-  game.add.tileSprite(0, 0, game.world.width, game.world.height, 'background');
+  game.add.tileSprite(0, 0, 1000, 1000, 'background');
 
   // add music
   music = game.add.audio('tommyInGoa');
@@ -113,7 +108,7 @@ function create() {
   ammoClips = game.add.group();
   ammoClips.enableBody = true;
   ammoClips.physicsBodyType = Phaser.Physics.ARCADE;
-  ammoClips.createMultiple(40, 'bulletSprite');
+  ammoClips.createMultiple(30, 'bulletSprite');
 
   // adding the player object
   player = game.add.sprite(game.world.centerX, game.world.centerY, 'ship');
@@ -135,19 +130,27 @@ function create() {
   aliens = game.add.group();
   aliens.enableBody = true;
   aliens.physicsBodyType = Phaser.Physics.ARCADE;
-  aliens.createMultiple(20, 'enemy');
+  aliens.createMultiple(50, 'enemy');
   aliens.setAll('body.collideWorldBounds', true);
   aliens.setAll('checkWorldBounds', true);
   aliens.setAll('body.outOfBoundsKill', true);
 
   // add gameState-text
-  stateText = game.add.text(game.world.centerX, game.world.centerY - 50,' ', { font: '84px Arial', fill: '#fff' });
-  stateText.anchor.setTo(0.5, 0.5);
+  stateText = game.add.text(game.camera.width / 2, (game.camera.height / 2) - 50,' ', {
+    font: '84px Arial', fill: '#fff'
+  });
+  //stateText.cameraOffset.setTo(textCenterX, textCenterY - 50);
+  stateText.anchor.set(0.5);
+  stateText.fixedToCamera = true;
   stateText.visible = false;
 
   // text used to display how to start a new round
-  startText = game.add.text(game.world.centerX, game.world.centerY + 50, ' ', { font: '40px Arial', fill: '#fff' });
+  startText = game.add.text(game.camera.width / 2, (game.camera.height / 2) + 50, ' ', {
+    font: '40px Arial', fill: '#fff'
+  });
+  //startText.cameraOffset.setTo(textCenterX, textCenterY + 50);
   startText.anchor.set(0.5);
+  startText.fixedToCamera = true;
   startText.visible = false;
 
   // add eventlisteners to keys
@@ -158,6 +161,9 @@ function create() {
   rightKey = game.input.keyboard.addKey(Phaser.Keyboard.RIGHT);
   dKey = game.input.keyboard.addKey(Phaser.Keyboard.D);
   fireKey = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
+
+  // make camera follow player
+  game.camera.follow(player);
 }
 
 function update() {
@@ -219,7 +225,7 @@ function render() {
   // display score & ammo
   if (player.alive) {
     game.debug.text('Kills: '+aliensKilled, 10, 20);
-    game.debug.text('Ammo: '+playerAmmo, game.world.width - 95, 20);
+    game.debug.text('Ammo: '+playerAmmo, 660, 20);
   }
 
   /* display hitboxes
