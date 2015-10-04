@@ -3,6 +3,8 @@ A simple game built to learn how to integrate Phaser into Meteor-projects.
 
 # >>> [Play here!](http://gspace.meteor.com) <<<
 
+![Gameplay](http://i.imgur.com/iEE9toO.png)
+
 ## A simple way to use Phaser with Meteor:
 *(Meteor version 1.2 and newer)*
 
