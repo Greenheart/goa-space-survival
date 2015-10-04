@@ -1,9 +1,66 @@
-canvas {
-  display: block;
-  margin: 50px auto;
-}
-
 body {
+  min-width: 1000px;
+  margin: 0;
+  padding: 0;
+  font-size: 14px;
   text-align: center;
   font-family: monospace;
+}
+
+header h2 {
+  margin: 1px auto;
+}
+
+header p {
+  margin: 3px auto;
+}
+
+input {
+  border: none;
+  background-color: #ececec;
+  height: 40px;
+  width: 300px;
+  line-height: 1.2;
+  font-size: 1.5rem;
+  font-family: monospace;
+  text-align: center;
+  border-radius: 3px;
+}
+
+canvas {
+  position: absolute;
+  left: 0px;
+  top: 50px;
+  margin: 0 auto;
+}
+
+.highscores {
+  position: absolute;
+  right: 0px;
+  top: 50px;
+  width: 200px;
+  height: 600px;
+  background-color: #efefef;
+  overflow: hidden;
+}
+
+.highscores h2 {
+  margin-top: 10px;
+  margin-bottom: 5px;
+}
+
+.highscores p {
+  margin: 10.2px auto;
+}
+
+.highscores hr {
+  width: 180px;
+}
+
+#container {
+  position: relative;
+  display: block;
+  max-width: 1000px;
+  height: 100%;
+  margin: 5px auto;
 }

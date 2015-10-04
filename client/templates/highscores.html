@@ -1,0 +1,9 @@
+<template name="highscores">
+  <div class="highscores">
+    <h2>All Time Top 20</h2>
+    <hr>
+    {{#each highscoreEntry}}
+      <p>{{username}} - {{score}}</p>
+    {{/each}}
+  </div>
+</template>

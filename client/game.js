@@ -1,3 +1,4 @@
+Meteor.subscribe('highscores');
 
 var fireRate = 300; // cooldown between gun firing
 var nextFireTime = 0; // time left until next bullet can be fired
@@ -12,12 +13,32 @@ var pickUpItemSFX;
 var playerAmmo = 50;
 var playerRotationFix = Math.PI / 2;  // hack that fixes the default rotation of player-sprite
 
+Template.body.helpers({
+  'getUsername': function() {
+    return Session.get("username");
+  }
+});
+
+Template.body.events({
+  'submit form': function(event) {
+    event.preventDefault();
+    var username = $('#username').val();
+    Session.set('username', username);
+  }
+});
+
 Template.game.helpers({
   'game': function() {
     game = new Phaser.Game(
-      800, 600, Phaser.CANVAS, '',
+      800, 600, Phaser.CANVAS, 'container',
       { preload: preload, create: create, update: update, render: render }
     );
+  }
+});
+
+Template.highscores.helpers({
+  'highscoreEntry': function() {
+    return Highscores.find({}, {sort: {score: -1, name: 1}});
   }
 });
 
@@ -348,11 +369,17 @@ function bulletAlienCollision(bullet, alien) {
 function restart () {
     // restarts the game
 
+    if (aliensKilled > 0) {
+      // add the current score to the highscores-db
+      Meteor.call('addScore', Session.get("username"), aliensKilled);
+    }
+
     // kill all aliens
     aliens.forEachAlive(function (a) {
       a.kill();
     }, this);
 
+    // remove all ammoClips
     ammoClips.forEachAlive(function(clip) {
       clip.kill();
     }, this);

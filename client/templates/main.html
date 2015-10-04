@@ -4,11 +4,27 @@
 </head>
 
 <body>
-  {{> game}}
+  {{#if getUsername}}
+    {{> game}}
+  {{else}}
+  <header>
+    <h2>Goa Space Survival</h2>
+    <p>Controls: UP or W to move forward, LEFT/RIGHT or A/D to rotate &amp; Spacebar to shoot</p>
+  </header>
+    <form>
+      <h3>Enter your username to get started!</h3>
+      <input id="username" type="text" maxlength="15" autofocus="true">
+    </form>
+  {{/if}}
 </body>
 
 <template name="game">
-  <h2>Goa Space Survival</h2>
-  <p>Controls: UP or W to move forward, LEFT/RIGHT or A/D to rotate &amp; Spacebar to shoot</p>
-  {{game}}
+  <div id="container">
+    <header>
+      <h2>Goa Space Survival</h2>
+      <p>Controls: UP or W to move forward, LEFT/RIGHT or A/D to rotate &amp; Spacebar to shoot</p>
+    </header>
+    {{game}}
+    {{> highscores}}
+  </div>
 </template>
