@@ -12,6 +12,9 @@ var playerExplosionSFX;
 var pickUpItemSFX;
 var playerAmmo = 50;
 var playerRotationFix = Math.PI / 2;  // hack that fixes the default rotation of player-sprite
+var accessKey = Random.id();          // The unique string used to identify valid requests
+                                      // (Not completely secure, but secure enough)
+Meteor.call('addKey', accessKey);     // sync the key with the server
 
 Template.body.helpers({
   'getUsername': function() {
@@ -38,7 +41,7 @@ Template.game.helpers({
 
 Template.highscores.helpers({
   'highscoreEntry': function() {
-    return Highscores.find({}, {sort: {score: -1, name: 1}});
+    return Highscores.find({}, {sort: {score: -1, name: 1}, limit: 20});
   }
 });
 
@@ -371,7 +374,7 @@ function restart () {
 
     if (aliensKilled > 0) {
       // add the current score to the highscores-db
-      Meteor.call('addScore', Session.get("username"), aliensKilled);
+      Meteor.call('addScore', Session.get("username"), aliensKilled, accessKey);
     }
 
     // kill all aliens
@@ -402,3 +405,8 @@ function refillAmmo(player, ammoClip) {
   playerAmmo += 10;
   ammoClip.kill();
 }
+
+window.addEventListener('beforeunload', function() {
+  // make sure that users that close tab/browser get removed from the Server-db
+  Meteor.call('removeKey', accessKey);
+});
