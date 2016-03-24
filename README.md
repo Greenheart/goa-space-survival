@@ -1,8 +1,6 @@
 # goa-space-survival
 A simple game built to learn how to integrate Phaser into Meteor-projects.
 
-# >>> [Play here!](http://gspace.meteor.com) <<<
-
 ![Gameplay](http://i.imgur.com/pWJ3PN4.png)
 
 ## A simple way to use Phaser with Meteor:
